@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -187,13 +188,13 @@ func checkIn() error {
 		ErrorCode int    `json:"error_code"`
 		ErrorMsg  string `json:"error_msg"`
 		Data      struct {
-			AddPoint   int    `json:"add_point"`
-			CheckInNum string `json:"checkin_num"`
-			Point      int    `json:"point"`
-			Exp        int    `json:"exp"`
-			Gold       int    `json:"gold"`
-			Prestige   int    `json:"prestige"`
-			Rank       int    `json:"rank"`
+			AddPoint   int             `json:"add_point"`
+			CheckInNum json.RawMessage `json:"checkin_num"`
+			Point      int             `json:"point"`
+			Exp        int             `json:"exp"`
+			Gold       int             `json:"gold"`
+			Prestige   int             `json:"prestige"`
+			Rank       int             `json:"rank"`
 		} `json:"data"`
 	}
 
@@ -207,7 +208,7 @@ func checkIn() error {
 	}
 
 	data := result.Data
-	msg := fmt.Sprintf("连续 %s 天 / 积分 %d / 新增积分 %d / 经验 %d / 金币 %d / 威望 %d / 等级 %d.", data.CheckInNum, data.Point, data.AddPoint, data.Exp, data.Gold, data.Prestige, data.Rank)
+	msg := fmt.Sprintf("连续 %s 天 / 积分 %d / 新增积分 %d / 经验 %d / 金币 %d / 威望 %d / 等级 %d.", string(bytes.Trim(data.CheckInNum, `"`)), data.Point, data.AddPoint, data.Exp, data.Gold, data.Prestige, data.Rank)
 	log.Printf("result: %s", msg)
 	return notify(msg)
 }
