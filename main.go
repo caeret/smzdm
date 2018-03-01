@@ -50,7 +50,7 @@ func init() {
 	jar, _ := cookiejar.New(nil)
 	client = &http.Client{
 		Jar:     jar,
-		Timeout: time.Second * 10,
+		Timeout: time.Second * 30,
 	}
 }
 
