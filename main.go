@@ -22,12 +22,14 @@ type Config struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 	SCKey    string `json:"sc_key"`
+	FakeIP   string `json:"fake_id"`
 }
 
 var (
 	username string
 	password string
 	SCKey    string
+	FakeIP   string
 
 	client *http.Client
 )
@@ -45,6 +47,7 @@ func init() {
 	flag.StringVar(&username, "u", "", "specify the username.")
 	flag.StringVar(&password, "p", "", "specify the password.")
 	flag.StringVar(&SCKey, "k", "", "specify the push key provided by http://sc.ftqq.com/.")
+	flag.StringVar(&FakeIP, "i", "", "specify the fake ip.")
 	flag.Parse()
 
 	jar, _ := cookiejar.New(nil)
@@ -69,6 +72,7 @@ func main() {
 		username = config.Username
 		password = config.Password
 		SCKey = config.SCKey
+		FakeIP = config.FakeIP
 		log.Printf("process account: %s.", username)
 		for _, fn := range fns {
 			err := fn()
@@ -103,7 +107,7 @@ func getConfigs() []Config {
 		}
 	}
 	if len(username) > 0 && len(password) > 0 {
-		configs = append(configs, Config{username, password, SCKey})
+		configs = append(configs, Config{username, password, SCKey, FakeIP})
 	}
 	return configs
 }
@@ -111,6 +115,7 @@ func getConfigs() []Config {
 func prepareRequestHeaders(req *http.Request) {
 	req.Header.Set("User-Agent", UserAgent)
 	req.Header.Set("Referer", Referer)
+	req.Header.Set("X-Forwarded-For", FakeIP)
 }
 
 func visit() error {

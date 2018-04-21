@@ -1,5 +1,6 @@
 {
   "username": "foo",
   "password": "bar",
-  "sc_key": "baz"
+  "sc_key": "baz",
+  "fake_ip": "180.149.132.151"
 }
