@@ -1,5 +1,5 @@
 {
-  "username": "foo",
+  "cookie": "some cookie",
   "password": "bar",
   "sc_key": "baz",
   "fake_ip": "180.149.132.151"

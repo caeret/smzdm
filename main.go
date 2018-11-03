@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -14,22 +13,19 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 )
 
 type Config struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	SCKey    string `json:"sc_key"`
-	FakeIP   string `json:"fake_id"`
+	Cookie string `json:"cookie"`
+	SCKey  string `json:"sc_key"`
+	FakeIP string `json:"fake_id"`
 }
 
 var (
-	username string
-	password string
-	SCKey    string
-	FakeIP   string
+	Cookie string
+	SCKey  string
+	FakeIP string
 
 	client *http.Client
 )
@@ -37,18 +33,11 @@ var (
 const (
 	UserAgent  = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.119 Safari/537.36"
 	Referer    = "https://www.smzdm.com"
-	SignInURL  = "https://zhiyou.smzdm.com/user/login/ajax_check"
 	CheckInURL = "https://zhiyou.smzdm.com/user/checkin/jsonp_checkin"
 )
 
 func init() {
 	rand.Seed(time.Now().Unix())
-
-	flag.StringVar(&username, "u", "", "specify the username.")
-	flag.StringVar(&password, "p", "", "specify the password.")
-	flag.StringVar(&SCKey, "k", "", "specify the push key provided by http://sc.ftqq.com/.")
-	flag.StringVar(&FakeIP, "i", "", "specify the fake ip.")
-	flag.Parse()
 
 	jar, _ := cookiejar.New(nil)
 	client = &http.Client{
@@ -64,16 +53,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	fns := []func() error{visit, signIn, checkIn}
+	fns := []func() error{visit, checkIn}
 
 	var exitCode int
 	for i, config := range configs {
 		log.SetPrefix(fmt.Sprintf("[%d]", i+1))
-		username = config.Username
-		password = config.Password
+		Cookie = config.Cookie
 		SCKey = config.SCKey
 		FakeIP = config.FakeIP
-		log.Printf("process account: %s.", username)
 		for _, fn := range fns {
 			err := fn()
 			if err != nil {
@@ -106,9 +93,6 @@ func getConfigs() []Config {
 			}
 		}
 	}
-	if len(username) > 0 && len(password) > 0 {
-		configs = append(configs, Config{username, password, SCKey, FakeIP})
-	}
 	return configs
 }
 
@@ -130,41 +114,6 @@ func visit() error {
 	return nil
 }
 
-func signIn() error {
-	log.Printf("sign in account: %s.", SignInURL)
-
-	v := make(url.Values)
-	v.Set("username", username)
-	v.Set("password", password)
-	req, _ := http.NewRequest(http.MethodPost, SignInURL, strings.NewReader(v.Encode()))
-	prepareRequestHeaders(req)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("fail to send sign in request: %s", err.Error())
-	}
-	defer resp.Body.Close()
-
-	var result struct {
-		ErrorCode int    `json:"error_code"`
-		ErrorMsg  string `json:"error_msg"`
-	}
-
-	b, err := ioutil.ReadAll(resp.Body)
-	err = json.Unmarshal(b, &result)
-	if err != nil {
-		return fmt.Errorf("fail to unmarshal sign in json: %s -> %s", string(b), err.Error())
-	}
-
-	if result.ErrorCode == 0 {
-		log.Println("successfully signed account in.")
-		return nil
-	} else {
-		return fmt.Errorf("failed to signed account in, error code: %d -> %s", result.ErrorCode, result.ErrorMsg)
-	}
-}
-
 func checkIn() error {
 	log.Printf("check in account: %s.", CheckInURL)
 	u, err := url.Parse(CheckInURL)
@@ -179,6 +128,7 @@ func checkIn() error {
 	u.RawQuery = q.Encode()
 	req, _ := http.NewRequest(http.MethodGet, u.String(), nil)
 	prepareRequestHeaders(req)
+	req.Header.Set("Cookie", Cookie)
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("fail to send sign in request: %s", err.Error())
@@ -228,7 +178,7 @@ func notify(msg string) error {
 		return fmt.Errorf("fail to parse sc url: %s", err.Error())
 	}
 	q := u.Query()
-	q.Set("text", "什么值得买签到: "+username)
+	q.Set("text", "什么值得买签到")
 	q.Set("desp", msg)
 	u.RawQuery = q.Encode()
 	req, _ := http.NewRequest(http.MethodPost, u.String(), nil)
